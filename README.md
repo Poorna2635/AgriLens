@@ -162,9 +162,9 @@ http://127.0.0.1:5000
 ![Home Page](screenshots/home.png)
 ![HomePage 2](screenshots/home2.png)
 ![Login](screenshots/login.png)
-![predict](screenshots/predict)
+![predict](screenshots/predict.png)
 ![Translation](screenshots/telpredict.png)
-![result](screenshots/res.png)
+![Result](screenshots/res%20plant.png)
 
 ## 📈 Future Enhancements
 
