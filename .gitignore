@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Environments
+venv/
+.venv/
+
+# Jupyter
+*.ipynb
+
+# Environment variables
+.env
+
+# VS Code
+.vscode/
+
+# ML Models
+*.h5
+*.keras
+*.pt
+*.pth
+*.onnx
+
+# Logs
+*.log

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriLens</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <a href="{{ url_for('home') }}" class="navbar-logo">{{ t('app_name') }}</a>
+        <div class="navbar-links">
+            <a href="{{ url_for('home') }}">{{ t('home') }}</a>
+            <a href="{{ url_for('disease_recognition') }}">{{ t('disease_recognition') }}</a>
+            <a href="{{ url_for('logout') }}" class="right">{{ t('logout') }}</a>
+            <a href="{{ url_for('set_language', lang='en') }}">EN</a>
+<a href="{{ url_for('set_language', lang='te') }}">తెలుగు</a>
+        </div>
+    </div>
+    <div class="content">
+        <div class="card">
+            <h1>{{ t('welcome_title') }}</h1>
+            <p style="font-size: 1.1rem; color: var(--text-light); margin-bottom: 32px;">
+                {{ t('welcome_message') }}
+            </p>
+            
+            <h2>{{ t('how_it_works') }}</h2>
+            <div style="margin: 24px 0;">
+                <div class="tip-item">
+                    <span class="tip-icon">📤</span>
+                    <div class="tip-text">
+                        <strong>{{ t('upload_image') }}</strong> {{ t('upload_image_desc') }}
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">🤖</span>
+                    <div class="tip-text">
+                        <strong>{{ t('analysis') }}</strong> {{ t('analysis_desc') }}
+                    </div>
+                </div>
+                <div class="tip-item">
+                    <span class="tip-icon">📊</span>
+                    <div class="tip-text">
+                        <strong>{{ t('results') }}</strong> {{ t('results_desc') }}
+                    </div>
+                </div>
+            </div>
+
+            <h2>{{ t('features') }}</h2>
+            <ul class="feature-list">
+                <li>{{ t('feature1') }}</li>
+                <li>{{ t('feature2') }}</li>
+                <li>{{ t('feature3') }}</li>
+            </ul>
+
+            <h2>{{ t('supported_plants') }}</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-top: 24px;">
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🫑 Bell Pepper</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🌿 Cassava</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🌽 Corn</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🍇 Grape</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🥭 Mango</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🥔 Potato</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🌾 Rice</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🌹 Rose</div>
+                <div style="background: var(--bg-offwhite); padding: 16px; border-radius: 12px; text-align: center; font-weight: 600; color: var(--primary-green);">🍅 Tomato</div>
+            </div>
+
+            <div style="margin-top: 32px; text-align: center;">
+                <a href="{{ url_for('disease_recognition') }}" class="btn-primary" style="text-decoration: none; display: inline-flex;">
+                    {{ t('start_detection') }}
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
