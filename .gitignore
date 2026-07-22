@@ -23,5 +23,8 @@ static/uploads/*
 .DS_Store
 Thumbs.db
 
+# Binary Artifacts generated at build time
+Team3model.tflite
+
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints
