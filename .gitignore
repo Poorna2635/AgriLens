@@ -9,16 +9,16 @@ venv/
 ENV/
 env/
 
-# Environment Variables, Secrets & Configs
+# Environment Variables & Secrets
 .env
 .env.*
 
-# Docker & Container Configs
-Dockerfile
-.dockerignore
-railway.json
-Procfile
-runtime.txt
+# Large H5 Binary Model (Keep on local disk only)
+Team3model.h5
+
+# Model Conversion & Colab Scratch Scripts (Keep on local disk only)
+convert_model.py
+PlantDiseaseClassification_Google_Collab.ipynb
 
 # User Uploaded Test Images
 static/uploads/*
@@ -29,9 +29,6 @@ static/uploads/*
 .idea/
 .DS_Store
 Thumbs.db
-
-# Build Artifacts
-Team3model.tflite
 
 # Jupyter Notebook Checkpoints
 .ipynb_checkpoints
