@@ -4,6 +4,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import re
 import gc
+import urllib.request
 import numpy as np
 import tensorflow as tf
 
@@ -38,6 +39,7 @@ import threading
 
 # TFLite Model Singleton (Lightweight: ~60 MB RAM usage)
 tflite_path = os.path.join(BASE_DIR, 'Team3model.tflite')
+MODEL_URL = "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.tflite"
 
 interpreter = None
 input_details = None
@@ -51,6 +53,15 @@ def get_interpreter():
 
     with model_lock:
         if interpreter is None:
+            # Auto-download TFLite model if missing in cloud runtime
+            if not os.path.exists(tflite_path) or os.path.getsize(tflite_path) < 100000:
+                print(f"📥 Downloading Team3model.tflite from {MODEL_URL}...")
+                try:
+                    urllib.request.urlretrieve(MODEL_URL, tflite_path)
+                    print(f"✅ TFLite model downloaded successfully ({os.path.getsize(tflite_path)/(1024*1024):.1f} MB)!")
+                except Exception as dl_err:
+                    print(f"❌ Error downloading TFLite model: {dl_err}")
+
             if os.path.exists(tflite_path):
                 file_size = os.path.getsize(tflite_path)
                 print(f"⚡ Loading TFLite model into RAM from {tflite_path} ({file_size/(1024*1024):.1f} MB)...")
