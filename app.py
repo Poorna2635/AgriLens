@@ -368,9 +368,8 @@ def health():
     }), 200
 
 @app.route('/')
-def login_redirect():
-    session['logged_in'] = True
-    return redirect(url_for('home'))
+def root_redirect():
+    return redirect(url_for('login'))
 
 @app.route('/set-language/<lang>')
 def set_language(lang):

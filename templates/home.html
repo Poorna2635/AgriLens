@@ -12,9 +12,11 @@
         <div class="navbar-links">
             <a href="{{ url_for('home') }}">{{ t('home') }}</a>
             <a href="{{ url_for('disease_recognition') }}">{{ t('disease_recognition') }}</a>
+            <div class="lang-switch-pill">
+                <a href="{{ url_for('set_language', lang='en') }}" class="lang-switch-opt {% if lang == 'en' %}active{% endif %}">EN</a>
+                <a href="{{ url_for('set_language', lang='te') }}" class="lang-switch-opt {% if lang == 'te' %}active{% endif %}">TEL</a>
+            </div>
             <a href="{{ url_for('logout') }}" class="right">{{ t('logout') }}</a>
-            <a href="{{ url_for('set_language', lang='en') }}">EN</a>
-<a href="{{ url_for('set_language', lang='te') }}">తెలుగు</a>
         </div>
     </div>
     <div class="content">
