@@ -10,7 +10,6 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Step 2: Install system dependencies required by OpenCV / Pillow / TensorFlow
-# Note: libgl1 replaces deprecated libgl1-mesa-glx in Debian 12 Bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
@@ -34,5 +33,5 @@ RUN mkdir -p static/uploads
 # Step 7: Expose container port
 EXPOSE 5000
 
-# Step 8: Production Start Command using Gunicorn WSGI Server
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "1", "--threads", "4", "--timeout", "120", "app:app"]
+# Step 8: Production Start Command using shell wrapper for $PORT expansion
+CMD ["sh", "-c", "gunicorn app:app --bind 0.0.0.0:${PORT:-5000} --workers 1 --threads 4 --timeout 120"]
