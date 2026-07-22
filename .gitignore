@@ -9,11 +9,18 @@ venv/
 ENV/
 env/
 
-# Environment Variables & Secrets
+# Environment Variables, Secrets & Configs
 .env
-.env.local
+.env.*
 
-# User Uploads
+# Docker & Container Configs
+Dockerfile
+.dockerignore
+railway.json
+Procfile
+runtime.txt
+
+# User Uploaded Test Images
 static/uploads/*
 !static/uploads/.gitkeep
 
@@ -23,7 +30,7 @@ static/uploads/*
 .DS_Store
 Thumbs.db
 
-# Binary Artifacts generated at build time
+# Build Artifacts
 Team3model.tflite
 
 # Jupyter Notebook Checkpoints
