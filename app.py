@@ -24,32 +24,51 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'agrilens-production-sec
 # Ensure Upload Directory Exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Load the trained CNN model once at application startup
+import threading
+
+# Load the trained CNN model asynchronously in a background thread
 model_path = os.path.join(BASE_DIR, 'Team3model.h5')
 MODEL_URL = "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5"
 model = None
+model_lock = threading.Lock()
 
-# Automatically download model if missing or if it's an LFS pointer file (< 100KB)
-if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
-    print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
-    try:
-        import urllib.request
-        urllib.request.urlretrieve(MODEL_URL, model_path)
-        print(f"✅ Successfully downloaded model to {model_path} ({os.path.getsize(model_path)} bytes)")
-    except Exception as dl_err:
-        print(f"❌ Failed to download model automatically: {dl_err}")
+def get_model():
+    global model
+    if model is None:
+        with model_lock:
+            if model is None:
+                if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
+                    print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
+                    try:
+                        import urllib.request
+                        urllib.request.urlretrieve(MODEL_URL, model_path)
+                        print(f"✅ Successfully downloaded model to {model_path}")
+                    except Exception as dl_err:
+                        print(f"❌ Failed to download model: {dl_err}")
 
-if os.path.exists(model_path):
-    file_size = os.path.getsize(model_path)
-    print(f"📦 Found model file at {model_path} ({file_size} bytes)")
+                if os.path.exists(model_path):
+                    file_size = os.path.getsize(model_path)
+                    print(f"📦 Loading model from {model_path} ({file_size} bytes)...")
+                    try:
+                        tf.keras.backend.clear_session()
+                        loaded = tf.keras.models.load_model(model_path, compile=False)
+                        loaded.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
+                        model = loaded
+                        print(f"✅ Model successfully loaded into memory ({file_size} bytes)")
+                    except Exception as e:
+                        print(f"❌ Error loading model: {e}")
+                else:
+                    print(f"⚠️ Warning: Model file not found at {model_path}")
+    return model
+
+# Pre-warm model in background thread so Gunicorn boots instantly and passes Railway health check
+def _warmup_model():
     try:
-        model = tf.keras.models.load_model(model_path, compile=False)
-        model.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
-        print(f"✅ Model successfully loaded from {model_path} ({file_size} bytes)")
-    except Exception as e:
-        print(f"❌ Error loading model from {model_path}: {e}")
-else:
-    print(f"⚠️ Warning: Model file not found at {model_path}")
+        get_model()
+    except Exception as err:
+        print(f"⚠️ Background model warmup note: {err}")
+
+threading.Thread(target=_warmup_model, daemon=True).start()
 
 img_width, img_height = 256, 256
 
@@ -252,13 +271,14 @@ def split_precaution(precaution_text):
     return fertilizer, tips
 
 def model_prediction(test_image_path):
-    if model is None:
+    active_model = get_model()
+    if active_model is None:
         raise ValueError("Model is not loaded. Ensure Team3model.h5 is available in the root directory.")
     image = Image.open(test_image_path).convert('RGB')
     image = image.resize((img_width, img_height))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
     input_arr = np.array([input_arr]) / 255.0
-    predictions = model.predict(input_arr)
+    predictions = active_model.predict(input_arr)
     return np.argmax(predictions)
 
 # Healthcheck Endpoint for Cloud Monitoring & Railway Health Checks
