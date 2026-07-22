@@ -28,7 +28,7 @@
             background: white;
             border-radius: 20px;
             box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-            padding: 50px 40px;
+            padding: 44px 36px;
             animation: fadeIn 0.4s ease;
         }
 
@@ -45,7 +45,7 @@
 
         .login-header {
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 28px;
         }
 
         .app-icon {
@@ -57,7 +57,7 @@
             align-items: center;
             justify-content: center;
             font-size: 32px;
-            margin: 0 auto 20px;
+            margin: 0 auto 16px;
         }
 
         .login-header h1 {
@@ -73,8 +73,21 @@
             font-size: 14px;
         }
 
+        .guest-note {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 12px;
+            text-align: center;
+            line-height: 1.4;
+            border: 1px solid #C8E6C9;
+        }
+
         .login-form {
-            margin-top: 32px;
+            margin-top: 24px;
         }
 
         .form-group {
@@ -107,10 +120,6 @@
             box-shadow: 0 0 0 3px rgba(45, 90, 39, 0.08);
         }
 
-        .form-group input::placeholder {
-            color: #999;
-        }
-
         .login-button {
             width: 100%;
             padding: 14px;
@@ -132,37 +141,11 @@
             box-shadow: 0 4px 12px rgba(45, 90, 39, 0.25);
         }
 
-        .login-button:active {
-            transform: translateY(0);
-        }
-
         /* Mobile */
         @media (max-width: 768px) {
             .login-container {
-                padding: 40px 28px;
+                padding: 36px 24px;
                 border-radius: 16px;
-            }
-
-            .app-icon {
-                width: 56px;
-                height: 56px;
-                font-size: 28px;
-                border-radius: 14px;
-            }
-
-            .login-header h1 {
-                font-size: 24px;
-            }
-
-            .login-header {
-                margin-bottom: 32px;
-            }
-
-            .form-group input,
-            .login-button {
-                padding: 16px;
-                font-size: 16px;
-                min-height: 52px;
             }
         }
     </style>
@@ -173,16 +156,19 @@
             <div class="app-icon">🌱</div>
             <h1>{{ t('login_title') }}</h1>
             <p>Sign in to continue</p>
+            <div class="guest-note">
+                💡 Public Guest Access: You can enter any email & password to sign in instantly!
+            </div>
         </div>
         
         <form action="/login" method="post" class="login-form">
             <div class="form-group">
                 <label for="email">{{ t('email') }}</label>
-                <input type="email" id="email" name="email" placeholder="{{ t('enter_email') }}" required autocomplete="email">
+                <input type="text" id="email" name="email" placeholder="Enter any email (e.g. guest@agrilens.org)" required autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="password">{{ t('password') }}</label>
-                <input type="password" id="password" name="password" placeholder="{{ t('enter_password') }}" required autocomplete="current-password">
+                <input type="password" id="password" name="password" placeholder="Enter any password" required autocomplete="current-password">
             </div>
             <button type="submit" class="login-button">
                 {{ t('login') }}
