@@ -1,9 +1,19 @@
 import os
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 import re
+import gc
 import numpy as np
 import tensorflow as tf
+
+# Limit TensorFlow thread pool to prevent RAM spikes on cloud hosts
+try:
+    tf.config.threading.set_inter_op_parallelism_threads(1)
+    tf.config.threading.set_intra_op_parallelism_threads(2)
+except Exception:
+    pass
+
 from flask import Flask, request, render_template, redirect, url_for, flash, session, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -34,31 +44,31 @@ model_lock = threading.Lock()
 
 def get_model():
     global model
-    if model is None:
-        with model_lock:
-            if model is None:
-                if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
-                    print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
-                    try:
-                        import urllib.request
-                        urllib.request.urlretrieve(MODEL_URL, model_path)
-                        print(f"✅ Successfully downloaded model to {model_path}")
-                    except Exception as dl_err:
-                        print(f"❌ Failed to download model: {dl_err}")
+    if model is not None:
+        return model
+    with model_lock:
+        if model is None:
+            if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
+                print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
+                try:
+                    import urllib.request
+                    urllib.request.urlretrieve(MODEL_URL, model_path)
+                    print(f"✅ Successfully downloaded model to {model_path}")
+                except Exception as dl_err:
+                    print(f"❌ Failed to download model: {dl_err}")
 
-                if os.path.exists(model_path):
-                    file_size = os.path.getsize(model_path)
-                    print(f"📦 Loading model from {model_path} ({file_size} bytes)...")
-                    try:
-                        tf.keras.backend.clear_session()
-                        loaded = tf.keras.models.load_model(model_path, compile=False)
-                        loaded.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
-                        model = loaded
-                        print(f"✅ Model successfully loaded into memory ({file_size} bytes)")
-                    except Exception as e:
-                        print(f"❌ Error loading model: {e}")
-                else:
-                    print(f"⚠️ Warning: Model file not found at {model_path}")
+            if os.path.exists(model_path):
+                file_size = os.path.getsize(model_path)
+                print(f"📦 Loading model from {model_path} ({file_size} bytes)...")
+                try:
+                    tf.keras.backend.clear_session()
+                    loaded = tf.keras.models.load_model(model_path, compile=False)
+                    model = loaded
+                    print(f"✅ Model successfully loaded into memory ({file_size} bytes)")
+                except Exception as e:
+                    print(f"❌ Error loading model: {e}")
+            else:
+                print(f"⚠️ Warning: Model file not found at {model_path}")
     return model
 
 # Pre-warm model in background thread so Gunicorn boots instantly and passes Railway health check
@@ -279,7 +289,10 @@ def model_prediction(test_image_path):
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
     input_arr = np.array([input_arr]) / 255.0
     predictions = active_model.predict(input_arr)
-    return np.argmax(predictions)
+    result = np.argmax(predictions)
+    del input_arr, image
+    gc.collect()
+    return result
 
 # Healthcheck Endpoint for Cloud Monitoring & Railway Health Checks
 @app.route('/health', methods=['GET'])
