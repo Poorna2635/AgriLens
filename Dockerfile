@@ -27,8 +27,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Step 5: Copy application code
 COPY . .
 
-# Step 6: Direct download of full 709MB binary model file from GitHub media CDN
-RUN curl -sSL -o Team3model.h5 "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5"
+# Step 6: Download 709MB H5 model during build, convert to 35MB TFLite model, remove heavy H5 file
+RUN curl -sSL -o Team3model.h5 "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5" && \
+    python convert_model.py && \
+    rm -f Team3model.h5
 
 # Step 7: Create upload folder if not existing
 RUN mkdir -p static/uploads

@@ -36,49 +36,65 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 import threading
 
-# Load the trained CNN model asynchronously in a background thread
-model_path = os.path.join(BASE_DIR, 'Team3model.h5')
+# TFLite Model Singleton (Lightweight: ~60 MB RAM usage)
+tflite_path = os.path.join(BASE_DIR, 'Team3model.tflite')
+h5_path = os.path.join(BASE_DIR, 'Team3model.h5')
 MODEL_URL = "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5"
-model = None
+
+interpreter = None
+input_details = None
+output_details = None
 model_lock = threading.Lock()
 
-def get_model():
-    global model
-    if model is not None:
-        return model
+def get_interpreter():
+    global interpreter, input_details, output_details
+    if interpreter is not None:
+        return interpreter, input_details, output_details
+
     with model_lock:
-        if model is None:
-            if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
-                print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
-                try:
-                    import urllib.request
-                    urllib.request.urlretrieve(MODEL_URL, model_path)
-                    print(f"✅ Successfully downloaded model to {model_path}")
-                except Exception as dl_err:
-                    print(f"❌ Failed to download model: {dl_err}")
+        if interpreter is None:
+            # If TFLite model doesn't exist, generate or download
+            if not os.path.exists(tflite_path):
+                if os.path.exists(h5_path) and os.path.getsize(h5_path) > 100000:
+                    print("⚡ Converting Team3model.h5 to Team3model.tflite...")
+                    try:
+                        h5_model = tf.keras.models.load_model(h5_path, compile=False)
+                        converter = tf.lite.TFLiteConverter.from_keras_model(h5_model)
+                        converter.optimizations = [tf.lite.Optimize.DEFAULT]
+                        tflite_bytes = converter.convert()
+                        with open(tflite_path, 'wb') as f:
+                            f.write(tflite_bytes)
+                        print(f"✅ TFLite model created ({os.path.getsize(tflite_path)/(1024*1024):.1f} MB)")
+                    except Exception as conv_err:
+                        print(f"⚠️ Conversion warning: {conv_err}")
 
-            if os.path.exists(model_path):
-                file_size = os.path.getsize(model_path)
-                print(f"📦 Loading model from {model_path} ({file_size} bytes)...")
+            if os.path.exists(tflite_path):
+                file_size = os.path.getsize(tflite_path)
+                print(f"⚡ Loading TFLite model into RAM from {tflite_path} ({file_size/(1024*1024):.1f} MB)...")
                 try:
-                    tf.keras.backend.clear_session()
-                    loaded = tf.keras.models.load_model(model_path, compile=False)
-                    model = loaded
-                    print(f"✅ Model successfully loaded into memory ({file_size} bytes)")
+                    interp = tf.lite.Interpreter(model_path=tflite_path)
+                    interp.allocate_tensors()
+                    inp_det = interp.get_input_details()
+                    out_det = interp.get_output_details()
+
+                    interpreter = interp
+                    input_details = inp_det
+                    output_details = out_det
+                    print(f"✅ TFLite Interpreter ready in RAM!")
                 except Exception as e:
-                    print(f"❌ Error loading model: {e}")
+                    print(f"❌ Error initializing TFLite Interpreter: {e}")
             else:
-                print(f"⚠️ Warning: Model file not found at {model_path}")
-    return model
+                print(f"⚠️ Warning: TFLite model not found at {tflite_path}")
 
-# Pre-warm model in background thread so Gunicorn boots instantly and passes Railway health check
-def _warmup_model():
+    return interpreter, input_details, output_details
+
+def _warmup_interpreter():
     try:
-        get_model()
+        get_interpreter()
     except Exception as err:
-        print(f"⚠️ Background model warmup note: {err}")
+        print(f"⚠️ Background interpreter warmup note: {err}")
 
-threading.Thread(target=_warmup_model, daemon=True).start()
+threading.Thread(target=_warmup_interpreter, daemon=True).start()
 
 img_width, img_height = 256, 256
 
@@ -281,15 +297,21 @@ def split_precaution(precaution_text):
     return fertilizer, tips
 
 def model_prediction(test_image_path):
-    active_model = get_model()
-    if active_model is None:
-        raise ValueError("Model is not loaded. Ensure Team3model.h5 is available in the root directory.")
+    interp, inp_det, out_det = get_interpreter()
+    if interp is None:
+        raise ValueError("TFLite Model is not loaded. Ensure Team3model.tflite is present.")
+    
     image = Image.open(test_image_path).convert('RGB')
     image = image.resize((img_width, img_height))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
-    input_arr = np.array([input_arr]) / 255.0
-    predictions = active_model.predict(input_arr)
-    result = np.argmax(predictions)
+    input_arr = np.array([input_arr], dtype=np.float32) / 255.0
+
+    # Set input tensor and run lightweight TFLite inference
+    interp.set_tensor(inp_det[0]['index'], input_arr)
+    interp.invoke()
+    predictions = interp.get_tensor(out_det[0]['index'])
+
+    result = np.argmax(predictions[0])
     del input_arr, image
     gc.collect()
     return result
@@ -299,7 +321,7 @@ def model_prediction(test_image_path):
 def health():
     return jsonify({
         'status': 'healthy',
-        'model_loaded': model is not None
+        'interpreter_ready': interpreter is not None
     }), 200
 
 @app.route('/')
@@ -346,12 +368,12 @@ def disease_recognition():
                 return redirect(request.url)
             
             try:
-                print(f"📸 Processing prediction for: {filepath}")
+                print(f"📸 Running TFLite prediction for: {filepath}")
                 result_index = model_prediction(filepath)
                 prediction = class_labels[result_index]
                 precaution = get_precaution(prediction)
                 fertilizer, tips = split_precaution(precaution)
-                print(f"✅ Successful prediction: {prediction}")
+                print(f"✅ Successful TFLite prediction: {prediction}")
                 return render_template(
                     'prediction.html',
                     predicted_disease=prediction,
