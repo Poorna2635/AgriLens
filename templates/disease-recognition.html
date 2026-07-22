@@ -736,12 +736,14 @@
                 return false;
             }
 
-            // Show loading state
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="loading"></span> Processing...';
-            submitBtn.disabled = true;
+            // Show loading state without blocking initial submit payload
+            setTimeout(() => {
+                if (submitBtn) {
+                    submitBtn.innerHTML = '<span class="loading"></span> Processing...';
+                    submitBtn.disabled = true;
+                }
+            }, 50);
 
-            // Form will submit normally
             return true;
         }
 
@@ -750,7 +752,6 @@
             const errorMessage = document.getElementById('errorMessage');
 
             try {
-                // Stop existing stream if any
                 if (currentStream) {
                     currentStream.getTracks().forEach(track => track.stop());
                 }
@@ -782,7 +783,7 @@
                 currentStream = null;
             }
             const video = document.getElementById('video');
-            if (video.srcObject) {
+            if (video && video.srcObject) {
                 video.srcObject = null;
             }
         }
@@ -803,26 +804,23 @@
                 return;
             }
 
-            // Set canvas dimensions to match video
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // Draw video frame to canvas
             const ctx = canvas.getContext('2d');
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Get image data
             capturedImageData = canvas.toDataURL('image/jpeg', 0.9);
             capturedImage.src = capturedImageData;
 
-            // Show shutter flash effect
             const flash = document.getElementById('shutterFlash');
-            flash.classList.add('active');
-            setTimeout(() => {
-                flash.classList.remove('active');
-            }, 150);
+            if (flash) {
+                flash.classList.add('active');
+                setTimeout(() => {
+                    flash.classList.remove('active');
+                }, 150);
+            }
 
-            // Hide camera, show preview
             cameraContainer.classList.remove('active');
             capturedPreview.classList.add('active');
         }
@@ -834,7 +832,6 @@
             capturedPreview.classList.remove('active');
             cameraContainer.classList.add('active');
             capturedImageData = null;
-            // Restart camera
             startCamera();
         }
 
@@ -843,54 +840,25 @@
                 return;
             }
 
-            // Convert data URL to blob
             fetch(capturedImageData)
                 .then(res => res.blob())
                 .then(blob => {
-                    // Create a File object from blob
-                    const file = new File([blob], 'captured-photo.jpg', { type: 'image/jpeg' });
+                    const file = new File([blob], 'captured-leaf.jpg', { type: 'image/jpeg' });
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
 
-                    // Create a new FormData and append the file
-                    const formData = new FormData();
-                    formData.append('file', file);
+                    const fileInput = document.getElementById('file');
+                    fileInput.files = dataTransfer.files;
 
-                    // Get form action
-                    const form = document.getElementById('uploadForm');
-                    const formAction = form.action;
-
-                    // Show loading state
                     const useBtn = button || document.getElementById('usePhotoBtn');
-                    const originalText = useBtn.innerHTML;
                     useBtn.innerHTML = '<span class="loading"></span> Processing...';
                     useBtn.disabled = true;
-                    
-                    // Submit via fetch
-                    fetch(formAction, {
-                        method: 'POST',
-                        body: formData
-                    })
-                    .then(response => {
-                        if (response.redirected) {
-                            window.location.href = response.url;
-                        } else if (response.ok) {
-                            return response.text().then(html => {
-                                document.open();
-                                document.write(html);
-                                document.close();
-                            });
-                        } else {
-                            throw new Error('Upload failed');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error submitting form:', error);
-                        showError('Error submitting photo. Please try again.');
-                        useBtn.innerHTML = originalText;
-                        useBtn.disabled = false;
-                    });
+
+                    const uploadForm = document.getElementById('uploadForm');
+                    uploadForm.submit();
                 })
                 .catch(error => {
-                    console.error('Error converting image:', error);
+                    console.error('Error processing photo:', error);
                     showError('Error processing photo. Please try again.');
                 });
         }
