@@ -29,12 +29,16 @@ model_path = os.path.join(BASE_DIR, 'Team3model.h5')
 model = None
 
 if os.path.exists(model_path):
+    file_size = os.path.getsize(model_path)
+    print(f"📦 Found model file at {model_path} ({file_size} bytes)")
+    if file_size < 100000:
+        print(f"⚠️ WARNING: {model_path} is only {file_size} bytes! It is a Git LFS pointer text file, not the full 709MB binary model!")
     try:
         model = tf.keras.models.load_model(model_path, compile=False)
         model.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
-        print(f"✅ Model successfully loaded from {model_path}")
+        print(f"✅ Model successfully loaded from {model_path} ({file_size} bytes)")
     except Exception as e:
-        print(f"❌ Error loading model: {e}")
+        print(f"❌ Error loading model from {model_path}: {e}")
 else:
     print(f"⚠️ Warning: Model file not found at {model_path}")
 
