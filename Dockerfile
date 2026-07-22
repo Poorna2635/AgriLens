@@ -10,9 +10,10 @@ ENV PYTHONUNBUFFERED=1 \
 WORKDIR /app
 
 # Step 2: Install system dependencies required by OpenCV / Pillow / TensorFlow
+# Note: libgl1 replaces deprecated libgl1-mesa-glx in Debian 12 Bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     curl \
     && rm -rf /var/lib/apt/lists/*
@@ -20,8 +21,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Step 3: Copy requirements first for Docker layer caching
 COPY requirements.txt .
 
-# Step 4: Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Step 4: Upgrade pip & install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Step 5: Copy application code
 COPY . .
