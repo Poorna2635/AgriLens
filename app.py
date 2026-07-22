@@ -241,7 +241,7 @@ def split_precaution(precaution_text):
 def model_prediction(test_image_path):
     if model is None:
         raise ValueError("Model is not loaded. Ensure Team3model.h5 is available in the root directory.")
-    image = Image.open(test_image_path)
+    image = Image.open(test_image_path).convert('RGB')
     image = image.resize((img_width, img_height))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
     input_arr = np.array([input_arr]) / 255.0
@@ -258,7 +258,8 @@ def health():
 
 @app.route('/')
 def login_redirect():
-    return redirect(url_for('login'))
+    session['logged_in'] = True
+    return redirect(url_for('home'))
 
 @app.route('/set-language/<lang>')
 def set_language(lang):
@@ -268,43 +269,43 @@ def set_language(lang):
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    session['logged_in'] = True
     if request.method == 'POST':
-        session['logged_in'] = True
         return redirect(url_for('home'))
     return render_template('login.html', t=t, lang=get_language())
 
 @app.route('/home')
 def home():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
+    session['logged_in'] = True
     return render_template('home.html', t=t, lang=get_language())
 
 @app.route('/disease-recognition', methods=['GET', 'POST'])
 def disease_recognition():
-    if not session.get('logged_in'):
-        return redirect(url_for('login'))
+    session['logged_in'] = True
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
+            flash('No file part uploaded.')
             return redirect(request.url)
         file = request.files['file']
         if file.filename == '':
-            flash('No selected file')
+            flash('No file selected.')
             return redirect(request.url)
         if file:
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             try:
                 file.save(filepath)
-            except UnicodeEncodeError:
-                flash('File name contains unsupported characters.')
+            except Exception as save_err:
+                flash(f'File save failed: {str(save_err)}')
                 return redirect(request.url)
             
             try:
+                print(f"📸 Processing prediction for: {filepath}")
                 result_index = model_prediction(filepath)
                 prediction = class_labels[result_index]
                 precaution = get_precaution(prediction)
                 fertilizer, tips = split_precaution(precaution)
+                print(f"✅ Successful prediction: {prediction}")
                 return render_template(
                     'prediction.html',
                     predicted_disease=prediction,
@@ -315,6 +316,7 @@ def disease_recognition():
                     lang=get_language()
                 )
             except Exception as e:
+                print(f"❌ Prediction error: {e}")
                 flash(f'Prediction failed: {str(e)}')
                 return redirect(request.url)
 

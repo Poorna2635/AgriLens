@@ -597,6 +597,16 @@
 
             <div class="error-message" id="errorMessage"></div>
 
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                <div style="background: #FFEBEE; color: #C62828; padding: 16px; border-radius: 12px; margin-bottom: 24px; border: 1px solid #EF9A9A;">
+                  {% for message in messages %}
+                    <p style="margin: 0; font-weight: 600; font-size: 0.95rem;">⚠️ {{ message }}</p>
+                  {% endfor %}
+                </div>
+              {% endif %}
+            {% endwith %}
+
             <!-- Two Column Layout for Upload and Camera -->
             <div class="input-methods-grid">
                 <!-- Upload Method -->
