@@ -1,182 +1,113 @@
-# 🌿 AgriLens: AI-Based Plant Disease Detection System
+# 🌿 AgriLens - Intelligent Plant Disease Recognition System
 
-AgriLens is an AI-powered web application that detects plant diseases from leaf images using Deep Learning. The system leverages a Convolutional Neural Network (CNN) trained on over **5,000+ plant leaf images** to identify diseases with **92%+ accuracy** and provides fertilizer recommendations and treatment tips. A multilingual interface improves accessibility for farmers and users from different linguistic backgrounds.
-
----
-
-## 📌 Features
-
-- 🌱 AI-powered plant disease detection
-- 🧠 CNN model built using TensorFlow/Keras
-- 📸 Upload plant leaf images for real-time prediction
-- ⚡ Flask-based web application
-- 🌍 Multilingual support (English & Telugu)
-- 💊 Disease-specific fertilizer recommendations
-- ✅ Treatment and prevention tips
-- 📱 Simple and user-friendly interface
+AgriLens is a deep-learning-powered Flask web application that classifies 38 different plant disease categories from leaf images using a Convolutional Neural Network (CNN) trained with TensorFlow/Keras. It provides multi-language support (English & Telugu), detailed disease diagnoses, fertilizer recommendations, and actionable treatment tips.
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Model Specs
 
-- **Programming Language:** Python
-- **Machine Learning:** TensorFlow, Keras (CNN)
-- **Backend Framework:** Flask
-- **Frontend:** HTML5, CSS3, JavaScript
-- **Image Processing:** Pillow (PIL)
-- **Scientific Computing:** NumPy
-- **Development Tools:** Git, VS Code
+- **Backend / Framework:** Python 3.10, Flask, Gunicorn
+- **Machine Learning:** TensorFlow (CPU), Keras (CNN), NumPy, Pillow
+- **Frontend:** HTML5, CSS3, JavaScript, Jinja2 Templates (with optional REST API support)
+- **Model Architecture:** Custom CNN trained on 5,000+ leaf images
+- **Accuracy:** 92% across 38 crop disease classes
+- **Input Size:** 256x256 RGB images
 
-## 📂 Project Structure
+---
 
-```
+## 📁 Directory Structure
+
+```text
 AgriLens/
-│── static/
-│   ├── uploads/
+├── static/
 │   ├── css/
-│   ├── js/
+│   │   └── style.css
+│   ├── uploads/
+│   │   └── .gitkeep
 │   └── images/
-│
-│── templates/
+├── templates/
 │   ├── login.html
 │   ├── home.html
 │   ├── disease-recognition.html
 │   └── prediction.html
-│
-│── Team3model.h5
-│── app.py
-│── requirements.txt
-│── README.md
+├── .dockerignore
+├── .env.example
+├── .gitignore
+├── app.py
+├── Dockerfile
+├── Procfile
+├── railway.json
+├── requirements.txt
+├── runtime.txt
+├── Team3model.h5
+└── README.md
 ```
 
 ---
 
-## 🚀 How It Works
+## 🚀 Local Development (Without Docker)
 
-1. Open the AgriLens web application.
-2. Upload a clear image of a plant leaf.
-3. The image is preprocessed and resized.
-4. The trained CNN predicts the disease.
-5. The application displays:
-   - Predicted Disease
-   - Fertilizer Recommendation
-   - Treatment Tips
-6. Users can switch between supported languages.
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/AgriLens.git
+   cd AgriLens
+   ```
 
----
+2. **Create and activate a virtual environment:**
+   ```bash
+   # Windows
+   python -m venv venv
+   .\venv\Scripts\activate
 
-## 📊 Model Details
+   # macOS / Linux
+   python3 -m venv venv
+   source venv/bin/activate
+   ```
 
-- **Model Type:** Convolutional Neural Network (CNN)
-- **Framework:** TensorFlow/Keras
-- **Training Dataset:** 5,000+ Plant Leaf Images
-- **Input Image Size:** 256 × 256 pixels
-- **Accuracy:** 92%+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
----
+4. **Run the Flask application:**
+   ```bash
+   python app.py
+   ```
 
-## 🌿 Supported Crops
-
-The system can identify diseases across multiple crops, including:
-
-- Tomato
-- Potato
-- Rice
-- Corn
-- Mango
-- Grape
-- Bell Pepper
-- Cassava
-- Rose
-
-with **38 disease and healthy classes**.
+5. Access the app in your browser at `http://localhost:5000`.
 
 ---
 
-## 🌍 Multilingual Support
+## 🐳 Docker Deployment & Testing
 
-AgriLens currently supports:
+1. **Build Docker Image:**
+   ```bash
+   docker build -t agrilens-app .
+   ```
 
-- 🇺🇸 English
-- 🇮🇳 Telugu
+2. **Run Container:**
+   ```bash
+   docker run -p 5000:5000 -e PORT=5000 agrilens-app
+   ```
 
-The multilingual interface enables farmers to access disease information in their preferred language.
-
----
-
-## 💡 Key Highlights
-
-- Real-time disease prediction
-- Deep Learning-based image classification
-- Automatic fertilizer recommendations
-- Crop-specific treatment suggestions
-- Easy-to-use web interface
-- Responsive design
-- Multilingual accessibility
+3. **View Logs:**
+   ```bash
+   docker logs -f <container_id>
+   ```
 
 ---
 
-## ⚙️ Installation
+## 🌐 Production Deployment Guide
 
-### Clone the Repository
-
-```bash
-git clone https://github.com/
-cd AgriLens
-```
-
-### Create Virtual Environment (Optional)
-
-```bash
-python -m venv venv
-```
-
-**Activate:**
-
-```bash
-venv\Scripts\activate
-```
-
-
-### Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Run the Application
-
-```bash
-python app.py
-```
-
-Open your browser and visit:
-
-```
-http://127.0.0.1:5000
-```
-
----
-# Output
-
-![Home Page](screenshots/home.png)
-![HomePage 2](screenshots/home2.png)
-![Login](screenshots/login.png)
-![predict](screenshots/predict.png)
-![Translation](screenshots/telpredict.png)
-![Result](screenshots/res%20plant.png)
-
-## 📈 Future Enhancements
-
-- Mobile Application
-- Additional Regional Languages
-- Cloud Deployment
-- Live Camera Detection
-- Weather-based Disease Prediction
-- IoT Sensor Integration
+### Deploying on Railway.app
+1. Push your project to GitHub (ensure `Team3model.h5` is pushed via Git LFS if >100MB).
+2. Connect your GitHub account to [Railway.app](https://railway.app).
+3. Create a **New Project** -> **Deploy from GitHub repo**.
+4. Railway will auto-detect the `Dockerfile` and build the container.
+5. Set environment variable: `PORT=5000` (or allow Railway to assign its own PORT).
+6. Click **Generate Domain** under Settings to obtain your public URL!
 
 ---
 
-## 👨‍💻 Author
-G.Poorna
----
+## 📜 License
+This project is open-source under the MIT License.

@@ -4,37 +4,56 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 import re
 import numpy as np
 import tensorflow as tf
-from flask import Flask, request, render_template, redirect, url_for, flash, session
+from flask import Flask, request, render_template, redirect, url_for, flash, session, jsonify
+from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from PIL import Image
 
 # Initialize the Flask app
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'static/uploads/'
-app.config['SECRET_KEY'] = 'supersecretkey'
+
+# Enable CORS for external frontend applications (e.g. Vercel deployment)
+CORS(app)
+
+# Configuration from Environment Variables
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'agrilens-production-secret-key-change-me')
+
+# Ensure Upload Directory Exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-# Load the model
-model_path = 'Team3model.h5'
-model = tf.keras.models.load_model(model_path, compile=False)
+# Load the trained CNN model once at application startup
+model_path = os.path.join(BASE_DIR, 'Team3model.h5')
+model = None
 
-# Manually configure the model's loss function
-model.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
+if os.path.exists(model_path):
+    try:
+        model = tf.keras.models.load_model(model_path, compile=False)
+        model.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
+        print(f"✅ Model successfully loaded from {model_path}")
+    except Exception as e:
+        print(f"❌ Error loading model: {e}")
+else:
+    print(f"⚠️ Warning: Model file not found at {model_path}")
 
 img_width, img_height = 256, 256
 
-# Class labels
-class_labels = ['Bell Pepper-bacterial spot', 'Bell Pepper-healthy', 'Cassava-Bacterial Blight (CBB)',
-                'Cassava-Brown Streak Disease (CBSD)', 'Cassava-Green Mottle (CGM)', 'Cassava-Healthy',
-                'Cassava-Mosaic Disease (CMD)', 'Corn-cercospora leaf spot gray leaf spot', 'Corn-common rust',
-                'Corn-healthy', 'Corn-northern leaf blight', 'Grape-black rot', 'Grape-esca (black measles)',
-                'Grape-healthy', 'Grape-leaf blight (isariopsis leaf spot)', 'Mango-Anthracnose Fungal Leaf Disease',
-                'Mango-Healthy Leaf', 'Mango-Rust Leaf Disease', 'Potato-early blight', 'Potato-healthy',
-                'Potato-late blight', 'Rice-BrownSpot', 'Rice-Healthy', 'Rice-Hispa', 'Rice-LeafBlast',
-                'Rose-Healthy Leaf', 'Rose-Rust', 'Rose-sawfly slug', 'Tomato-bacterial spot', 'Tomato-early blight',
-                'Tomato-healthy', 'Tomato-late blight', 'Tomato-leaf mold', 'Tomato-mosaic virus',
-                'Tomato-septoria leaf spot', 'Tomato-spider mites two-spotted spider mite', 'Tomato-target spot',
-                'Tomato-yellow leaf curl virus']
+# Class labels (38 classes)
+class_labels = [
+    'Bell Pepper-bacterial spot', 'Bell Pepper-healthy', 'Cassava-Bacterial Blight (CBB)',
+    'Cassava-Brown Streak Disease (CBSD)', 'Cassava-Green Mottle (CGM)', 'Cassava-Healthy',
+    'Cassava-Mosaic Disease (CMD)', 'Corn-cercospora leaf spot gray leaf spot', 'Corn-common rust',
+    'Corn-healthy', 'Corn-northern leaf blight', 'Grape-black rot', 'Grape-esca (black measles)',
+    'Grape-healthy', 'Grape-leaf blight (isariopsis leaf spot)', 'Mango-Anthracnose Fungal Leaf Disease',
+    'Mango-Healthy Leaf', 'Mango-Rust Leaf Disease', 'Potato-early blight', 'Potato-healthy',
+    'Potato-late blight', 'Rice-BrownSpot', 'Rice-Healthy', 'Rice-Hispa', 'Rice-LeafBlast',
+    'Rose-Healthy Leaf', 'Rose-Rust', 'Rose-sawfly slug', 'Tomato-bacterial spot', 'Tomato-early blight',
+    'Tomato-healthy', 'Tomato-late blight', 'Tomato-leaf mold', 'Tomato-mosaic virus',
+    'Tomato-septoria leaf spot', 'Tomato-spider mites two-spotted spider mite', 'Tomato-target spot',
+    'Tomato-yellow leaf curl virus'
+]
 
 # Precaution mapping for each disease
 precaution_map = {
@@ -78,20 +97,10 @@ precaution_map = {
     'Tomato-yellow leaf curl virus': "Fertilizer: There is no cure for the virus, but Seaweed Extract can help the plant tolerate the stress.<br><br>Tip: Immediately remove infected plants to save the rest of the crop. Control whiteflies (the carriers)."
 }
 
-# Function to get precaution for a given disease label
 def get_precaution(label):
-    """
-    Returns the recommended treatment or precaution for a given disease label.
-    
-    Args:
-        label (str): The disease class label
-        
-    Returns:
-        str: The precaution/treatment recommendation
-    """
     return precaution_map.get(label, "No specific precaution found. Please consult with an agricultural expert for guidance.")
 
-# Translation dictionaries
+# Multi-language translation support (English & Telugu)
 translations = {
     'en': {
         'app_name': 'AgriLens',
@@ -136,14 +145,13 @@ translations = {
         'no_tips': 'No specific tips available. Please consult with an agricultural expert.',
         'analyze_another': 'Analyze Another Image',
         'take_photo': 'Take Photo Directly',
-        'upload_image': 'Upload Image',
         'switch_camera': 'Switch Camera',
         'capture_photo': 'Capture Photo',
         'retake_photo': 'Retake Photo',
         'use_this_photo': 'Use This Photo',
         'camera_instructions': 'Place the leaf inside the frame for best results',
         'camera_not_supported': 'Camera is not supported on your device',
-        'camera_permission_denied': 'Camera permission denied. Please allow camera access.',
+        'camera_permission_denied': 'Camera permission denied. Please allow camera access.'
     },
     'te': {
         'app_name': 'అగ్రిలెన్స్',
@@ -188,47 +196,27 @@ translations = {
         'no_tips': 'నిర్దిష్ట చిట్కాలు అందుబాటులో లేవు. దయచేసి వ్యవసాయ నిపుణుడిని సంప్రదించండి.',
         'analyze_another': 'మరొక చిత్రాన్ని విశ్లేషించండి',
         'take_photo': 'నేరుగా ఫోటో తీయండి',
-        'upload_image': 'చిత్రం అప్లోడ్ చేయండి',
         'switch_camera': 'కెమెరా మార్చండి',
         'capture_photo': 'ఫోటో తీయండి',
         'retake_photo': 'మళ్లీ తీయండి',
         'use_this_photo': 'ఈ ఫోటోను ఉపయోగించండి',
         'camera_instructions': 'ఉత్తమ ఫలితాల కోసం ఆకును ఫ్రేమ్ లోపల ఉంచండి',
         'camera_not_supported': 'మీ పరికరంలో కెమెరా మద్దతు లేదు',
-        'camera_permission_denied': 'కెమెరా అనుమతి నిరాకరించబడింది. దయచేసి కెమెరా ప్రాప్యతను అనుమతించండి.',
+        'camera_permission_denied': 'కెమెరా అనుమతి నిరాకరించబడింది. దయచేసి కెమెరా ప్రాప్యతను అనుమతించండి.'
     }
 }
 
-# # Function to get current language (always English)
-# def get_language():
-#     """Returns the current language, always 'en'"""
-#     return 'en'
 def get_language():
     return session.get('lang', 'en')
 
-# Function to get translation
 def t(key):
-    """Returns translation for the given key in current language"""
     lang = get_language()
     return translations.get(lang, translations['en']).get(key, key)
 
-# Function to split precaution into fertilizer and tips
 def split_precaution(precaution_text):
-    """
-    Splits the precaution text into fertilizer and tips sections.
-    
-    Args:
-        precaution_text (str): The full precaution text
-        
-    Returns:
-        tuple: (fertilizer, tips) - Two strings containing fertilizer and tips
-    """
     fertilizer = ""
     tips = ""
-    
-    # Split by <br><br> which separates sections
     parts = precaution_text.split('<br><br>')
-    
     for part in parts:
         part_clean = part.strip()
         if part_clean.startswith('Fertilizer:'):
@@ -236,10 +224,8 @@ def split_precaution(precaution_text):
         elif part_clean.startswith('Tip:'):
             tips = part_clean.replace('Tip:', '').strip()
         elif not fertilizer and part_clean:
-            # If no fertilizer found yet and this part has content, treat as fertilizer
             fertilizer = part_clean
-    
-    # Fallback: if still not split, try direct string search
+
     if not fertilizer and not tips:
         if 'Tip:' in precaution_text:
             tip_index = precaution_text.find('Tip:')
@@ -247,22 +233,28 @@ def split_precaution(precaution_text):
             tips = precaution_text[tip_index + 4:].strip()
         else:
             fertilizer = precaution_text.replace('Fertilizer:', '').strip()
-    
-    # Clean up HTML tags from text
+
     fertilizer = re.sub(r'<[^>]+>', '', fertilizer).strip()
     tips = re.sub(r'<[^>]+>', '', tips).strip()
-    
     return fertilizer, tips
 
-# Function to predict the class of the plant disease
 def model_prediction(test_image_path):
+    if model is None:
+        raise ValueError("Model is not loaded. Ensure Team3model.h5 is available in the root directory.")
     image = Image.open(test_image_path)
     image = image.resize((img_width, img_height))
     input_arr = tf.keras.preprocessing.image.img_to_array(image)
-    input_arr = np.array([input_arr])
-    input_arr = input_arr / 255.0
+    input_arr = np.array([input_arr]) / 255.0
     predictions = model.predict(input_arr)
     return np.argmax(predictions)
+
+# Healthcheck Endpoint for Cloud Monitoring & Railway Health Checks
+@app.route('/health', methods=['GET'])
+def health():
+    return jsonify({
+        'status': 'healthy',
+        'model_loaded': model is not None
+    }), 200
 
 @app.route('/')
 def login_redirect():
@@ -277,7 +269,6 @@ def set_language(lang):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        # Bypass username and password validation
         session['logged_in'] = True
         return redirect(url_for('home'))
     return render_template('login.html', t=t, lang=get_language())
@@ -308,12 +299,53 @@ def disease_recognition():
             except UnicodeEncodeError:
                 flash('File name contains unsupported characters.')
                 return redirect(request.url)
+            
+            try:
+                result_index = model_prediction(filepath)
+                prediction = class_labels[result_index]
+                precaution = get_precaution(prediction)
+                fertilizer, tips = split_precaution(precaution)
+                return render_template(
+                    'prediction.html',
+                    predicted_disease=prediction,
+                    fertilizer=fertilizer,
+                    tips=tips,
+                    image_url=url_for('static', filename='uploads/' + filename),
+                    t=t,
+                    lang=get_language()
+                )
+            except Exception as e:
+                flash(f'Prediction failed: {str(e)}')
+                return redirect(request.url)
+
+    return render_template('disease-recognition.html', t=t, lang=get_language())
+
+# REST API Endpoint for Headless / Decoupled Frontend (e.g. Vercel)
+@app.route('/api/predict', methods=['POST'])
+def api_predict():
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file uploaded'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    if file:
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        file.save(filepath)
+        try:
             result_index = model_prediction(filepath)
             prediction = class_labels[result_index]
             precaution = get_precaution(prediction)
             fertilizer, tips = split_precaution(precaution)
-            return render_template('prediction.html', predicted_disease=prediction, fertilizer=fertilizer, tips=tips, image_url=url_for('static', filename='uploads/' + filename), t=t, lang=get_language())
-    return render_template('disease-recognition.html', t=t, lang=get_language())
+            return jsonify({
+                'success': True,
+                'prediction': prediction,
+                'fertilizer': fertilizer,
+                'tips': tips,
+                'image_url': f"/static/uploads/{filename}"
+            }), 200
+        except Exception as e:
+            return jsonify({'error': str(e)}), 500
 
 @app.route('/logout')
 def logout():
@@ -321,4 +353,7 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    host = os.environ.get('HOST', '0.0.0.0')
+    debug = os.environ.get('FLASK_DEBUG', 'False').lower() in ['true', '1', 't']
+    app.run(host=host, port=port, debug=debug)

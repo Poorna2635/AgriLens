@@ -1,26 +1,27 @@
-# Python
+# Python Bytecode & Cache
 __pycache__/
 *.py[cod]
+*$py.class
 
 # Virtual Environments
-venv/
 .venv/
+venv/
+ENV/
+env/
 
-# Jupyter
-*.ipynb
-
-# Environment variables
+# Environment Variables & Secrets
 .env
+.env.local
 
-# VS Code
+# User Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
+# IDEs & System Files
 .vscode/
+.idea/
+.DS_Store
+Thumbs.db
 
-# ML Models
-*.h5
-*.keras
-*.pt
-*.pth
-*.onnx
-
-# Logs
-*.log
+# Jupyter Notebook Checkpoints
+.ipynb_checkpoints
