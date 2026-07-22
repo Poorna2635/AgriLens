@@ -9,14 +9,12 @@ ENV PYTHONUNBUFFERED=1 \
 # Set working directory inside the container
 WORKDIR /app
 
-# Step 2: Install system dependencies required by OpenCV / Pillow / TensorFlow / Git LFS
+# Step 2: Install system dependencies required by OpenCV / Pillow / TensorFlow / Curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libgl1 \
     libglib2.0-0 \
     curl \
-    git \
-    git-lfs \
     && rm -rf /var/lib/apt/lists/*
 
 # Step 3: Copy requirements first for Docker layer caching
@@ -26,11 +24,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Step 5: Copy application code (including .git repository for Git LFS resolution)
+# Step 5: Copy application code
 COPY . .
 
-# Step 6: Pull actual 709MB binary file for Git LFS tracked model (Team3model.h5)
-RUN git lfs install && git lfs pull || true
+# Step 6: Direct download of full 709MB binary model file from GitHub media CDN
+RUN curl -sSL -o Team3model.h5 "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5"
 
 # Step 7: Create upload folder if not existing
 RUN mkdir -p static/uploads

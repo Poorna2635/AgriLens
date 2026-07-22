@@ -26,13 +26,22 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Load the trained CNN model once at application startup
 model_path = os.path.join(BASE_DIR, 'Team3model.h5')
+MODEL_URL = "https://media.githubusercontent.com/media/Poorna2635/AgriLens/main/Team3model.h5"
 model = None
+
+# Automatically download model if missing or if it's an LFS pointer file (< 100KB)
+if not os.path.exists(model_path) or os.path.getsize(model_path) < 100000:
+    print(f"📥 Downloading full 709MB binary model from {MODEL_URL}...")
+    try:
+        import urllib.request
+        urllib.request.urlretrieve(MODEL_URL, model_path)
+        print(f"✅ Successfully downloaded model to {model_path} ({os.path.getsize(model_path)} bytes)")
+    except Exception as dl_err:
+        print(f"❌ Failed to download model automatically: {dl_err}")
 
 if os.path.exists(model_path):
     file_size = os.path.getsize(model_path)
     print(f"📦 Found model file at {model_path} ({file_size} bytes)")
-    if file_size < 100000:
-        print(f"⚠️ WARNING: {model_path} is only {file_size} bytes! It is a Git LFS pointer text file, not the full 709MB binary model!")
     try:
         model = tf.keras.models.load_model(model_path, compile=False)
         model.compile(optimizer='adam', loss=tf.keras.losses.CategoricalCrossentropy(reduction='sum_over_batch_size'))
