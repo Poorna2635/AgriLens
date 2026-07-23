@@ -10,7 +10,7 @@
 ---
 
 ### 🌐 Live Production Application
-👉 **[https://web-production-fd0d4.up.railway.app](https://web-production-fd0d4.up.railway.app)**
+👉 **[https://agrilens.up.railway.app/](https://agrilens.up.railway.app/)**
 
 ---
 
@@ -95,7 +95,7 @@ AgriLens/
 
 ## 🚀 How It Works
 
-1. Open the **[AgriLens Web Application](https://web-production-fd0d4.up.railway.app)**.
+1. Open the **[AgriLens Web Application](https://agrilens.up.railway.app/)**.
 2. Select a plant leaf image from your device or capture one directly using your camera.
 3. The image is preprocessed into a $256 \times 256 \times 3$ normalized RGB tensor array.
 4. The lightweight TFLite CNN Interpreter executes matrix inference in ~0.15 seconds.
@@ -191,4 +191,4 @@ Open your browser and navigate to:
 
 **G. Poorna**  
 - GitHub: [@Poorna2635](https://github.com/Poorna2635)  
-- Live Application: [AgriLens Production App](https://web-production-fd0d4.up.railway.app)
+- Live Application: [AgriLens Production App](https://agrilens.up.railway.app/)
